@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  tinyproxy:
+    image: docker.io/kalaksi/tinyproxy:latest
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    ports:
+      - 8081:8888 #左侧端口暴露在外,可根据需求更改，防火墙放行该端口，http代理端口
+    environment:
+      DISABLE_VIA_HEADER: 'yes'
+      STAT_HOST: tinyproxy.stats
+      MAX_CLIENTS: 100
+      # A space separated list:
+      ALLOWED_NETWORKS: 0.0.0.0/0
+      LOG_LEVEL: Notice
+      TIMEOUT: 900
+      AUTH_USER: '' #http代理用户名
+      AUTH_PASSWORD: '' #http代理密码
+    healthcheck:
+      test: ["CMD", "curl", "-I", "-H", "Host: tinyproxy.stats", "http://localhost:8081"]
+      interval: 5m
+      timeout: 10s
+      retries: 1
+
+  ja3-proxy:
+    image: xyhelper/ja3-proxy:latest
+    ports:
+      - "9989:9988" #左侧端口暴露在外,可根据需求更改，防火墙放行该端口，ja3端口
+    environment:
+      WEBSITE_URL: "https://chat.openai.com/auth/login" # 要过盾的目标网站
+      PROXY: http://tinyproxyuser:tinyproxypassword@tinyproxyip:8081  # 代理服务器信息，填入上方的http代理用户名和密码，端口为上方tinyproxy的端口，必须暴露
+      CLIENTKEY: "" # yescaptcha 的 clientKey
+      LOCALPROXYUSER: "ja3user" # ja3代理服务用户名，只能为小写字母和数字
+      LOCALPROXYPASS: "ja3password" # ja3代理服务密码，只能为小写字母和数字
